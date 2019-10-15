@@ -6,6 +6,7 @@
 #include "DXF.h"	// include dxframework
 #include "LightShader.h"
 #include "TextureShader.h"
+#include "GreyscaleLightShader.h"
 
 class App1 : public BaseApplication
 {
@@ -20,16 +21,22 @@ public:
 protected:
 	bool render();
 	void firstPass();
+	void secondPass();
 	void finalPass();
 	void gui();
 
 private:
+	Camera* topCamera;
 	CubeMesh* cubeMesh;
-	OrthoMesh* orthoMesh;
+	SphereMesh* sphereMesh;
+	PlaneMesh* planeMesh;
+	OrthoMesh* leftOrthoMesh;
+	OrthoMesh* rightOrthoMesh;
 	LightShader* lightShader;
 	TextureShader* textureShader;
-
-	RenderTexture* renderTexture;
+	GreyscaleLightShader* greyscaleShader;
+	RenderTexture* leftRenderTexture;
+	RenderTexture* rightRenderTexture;
 
 	Light* light;
 };

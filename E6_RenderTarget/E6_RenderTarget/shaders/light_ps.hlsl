@@ -8,7 +8,7 @@ cbuffer LightBuffer : register(b0)
 {
 	float4 diffuseColour;
 	float3 lightDirection;
-	float padding;
+	float renderTex;
 };
 
 struct InputType
@@ -35,7 +35,10 @@ float4 main(InputType input) : SV_TARGET
 	textureColour = texture0.Sample(sampler0, input.tex);
 	lightColour = calculateLighting(-lightDirection, input.normal, diffuseColour);
 	
-	return lightColour * textureColour;
+	if(renderTex == 0)
+		return lightColour;
+	else
+		return lightColour * textureColour;
 }
 
 
