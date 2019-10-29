@@ -22,15 +22,16 @@ void App1::init(HINSTANCE hinstance, HWND hwnd, int screenWidth, int screenHeigh
 	cubeMesh = new CubeMesh(renderer->getDevice(), renderer->getDeviceContext());
 	sphereMesh = new SphereMesh(renderer->getDevice(), renderer->getDeviceContext());
 	planeMesh = new PlaneMesh(renderer->getDevice(), renderer->getDeviceContext());
-	leftOrthoMesh = new OrthoMesh(renderer->getDevice(), renderer->getDeviceContext(), screenWidth / 4, screenHeight / 4, -screenWidth / 2.7, screenHeight / 2.7);
+	mapOrthoMesh = new OrthoMesh(renderer->getDevice(), renderer->getDeviceContext(), screenWidth / 4, screenHeight / 4, -screenWidth / 2.7, screenHeight / 2.7);
 	rightOrthoMesh = new OrthoMesh(renderer->getDevice(), renderer->getDeviceContext(), screenWidth / 4, screenHeight / 4, screenWidth / 2.7, screenHeight / 2.7);
 
 	lightShader = new LightShader(renderer->getDevice(), hwnd);
 	textureShader = new TextureShader(renderer->getDevice(), hwnd);
 	greyscaleShader = new GreyscaleLightShader(renderer->getDevice(), hwnd);
+	minimapShader = new MinimapShader(renderer->getDevice(), hwnd);
 
-	leftRenderTexture = new RenderTexture(renderer->getDevice(), screenWidth, screenHeight, SCREEN_NEAR, SCREEN_DEPTH);		
-	rightRenderTexture = new RenderTexture(renderer->getDevice(), screenWidth, screenHeight, SCREEN_NEAR, SCREEN_DEPTH);
+	minimapRenderTexture = new RenderTexture(renderer->getDevice(), screenWidth, screenHeight, SCREEN_NEAR, SCREEN_DEPTH);		
+	firstMapRenderTexture = new RenderTexture(renderer->getDevice(), screenWidth, screenHeight, SCREEN_NEAR, SCREEN_DEPTH);
 
 	light = new Light;
 	light->setAmbientColour(0.0f, 0.0f, 0.0f, 1.0f);
@@ -86,12 +87,10 @@ bool App1::render()
 void App1::firstPass()
 {
 	// Set the render target to be the render to texture and clear it
-	leftRenderTexture->setRenderTarget(renderer->getDeviceContext());
-	leftRenderTexture->clearRenderTarget(renderer->getDeviceContext(), 0.8f, 0.2f, 0.2f, 1.0f);
+	firstMapRenderTexture->setRenderTarget(renderer->getDeviceContext());
+	firstMapRenderTexture->clearRenderTarget(renderer->getDeviceContext(), 0.8f, 0.2f, 0.2f, 1.0f);
 
 	// Get matrices
-	// create a camera matrix to look down
-	topCamera->update();
 
 	XMMATRIX worldMatrix = renderer->getWorldMatrix();
 	XMMATRIX viewMatrix = topCamera->getViewMatrix();
@@ -99,8 +98,8 @@ void App1::firstPass()
 
 	// Render shape with simple lighting shader set.
 	planeMesh->sendData(renderer->getDeviceContext());
-	lightShader->setShaderParameters(renderer->getDeviceContext(), worldMatrix, viewMatrix, projectionMatrix, textureMgr->getTexture(L"brick"), light, 1);
-	lightShader->render(renderer->getDeviceContext(), planeMesh->getIndexCount());
+	textureShader->setShaderParameters(renderer->getDeviceContext(), worldMatrix, viewMatrix, projectionMatrix, textureMgr->getTexture(L"brick"));
+	textureShader->render(renderer->getDeviceContext(), planeMesh->getIndexCount());
 
 	// Reset the render target back to the original back buffer and not the render to texture anymore.
 	renderer->setBackBufferRenderTarget();
@@ -109,21 +108,20 @@ void App1::firstPass()
 void App1::secondPass()
 {
 	// Set the render target to be the render to texture and clear it
-	rightRenderTexture->setRenderTarget(renderer->getDeviceContext());
-	rightRenderTexture->clearRenderTarget(renderer->getDeviceContext(), 0.2f, 0.2f, 0.8f, 1.0f);
+	minimapRenderTexture->setRenderTarget(renderer->getDeviceContext());
+	minimapRenderTexture->clearRenderTarget(renderer->getDeviceContext(), 0.2f, 0.2f, 0.8f, 1.0f);
 
 	// Get matrices
-	// create a camera matrix to look down
 	topCamera->update();
-
+	
 	XMMATRIX worldMatrix = renderer->getWorldMatrix();
 	XMMATRIX viewMatrix = topCamera->getViewMatrix();
 	XMMATRIX projectionMatrix = renderer->getProjectionMatrix();
 
 	// Render shape with simple lighting shader set.
 	planeMesh->sendData(renderer->getDeviceContext());
-	lightShader->setShaderParameters(renderer->getDeviceContext(), worldMatrix, viewMatrix, projectionMatrix, textureMgr->getTexture(L"brick"), light, 1);
-	lightShader->render(renderer->getDeviceContext(), planeMesh->getIndexCount());
+	minimapShader->setShaderParameters(renderer->getDeviceContext(), worldMatrix, viewMatrix, projectionMatrix, firstMapRenderTexture->getShaderResourceView(), camera->getPosition());
+	minimapShader->render(renderer->getDeviceContext(), planeMesh->getIndexCount());
 
 	// Reset the render target back to the original back buffer and not the render to texture anymore.
 	renderer->setBackBufferRenderTarget();
@@ -149,21 +147,15 @@ void App1::finalPass()
 	// RENDER THE RENDER TEXTURE SCENE
 	// Requires 2D rendering and an ortho mesh.
 	renderer->setZBuffer(false);
-	//render left render texture
+
+	//render minimap texture
 	XMMATRIX orthoMatrix = renderer->getOrthoMatrix();  // ortho matrix for 2D rendering
-	XMMATRIX orthoViewMatrix = camera->getOrthoViewMatrix();	// Default camera position for orthographic rendering
+	XMMATRIX orthoViewMatrix = topCamera->getOrthoViewMatrix();	// Default camera position for orthographic rendering
 
-	leftOrthoMesh->sendData(renderer->getDeviceContext());
-	textureShader->setShaderParameters(renderer->getDeviceContext(), worldMatrix, orthoViewMatrix, orthoMatrix, leftRenderTexture->getShaderResourceView());
-	textureShader->render(renderer->getDeviceContext(), leftOrthoMesh->getIndexCount());
+	mapOrthoMesh->sendData(renderer->getDeviceContext());
+	textureShader->setShaderParameters(renderer->getDeviceContext(), worldMatrix, orthoViewMatrix, orthoMatrix, minimapRenderTexture->getShaderResourceView());
+	textureShader->render(renderer->getDeviceContext(), mapOrthoMesh->getIndexCount());
 
-	//render right render texture
-	//XMMATRIX orthoMatrix = renderer->getOrthoMatrix();  // ortho matrix for 2D rendering
-	//XMMATRIX orthoViewMatrix = camera->getOrthoViewMatrix();	// Default camera position for orthographic rendering
-
-	rightOrthoMesh->sendData(renderer->getDeviceContext());
-	textureShader->setShaderParameters(renderer->getDeviceContext(), worldMatrix, orthoViewMatrix, orthoMatrix, rightRenderTexture->getShaderResourceView());
-	//textureShader->render(renderer->getDeviceContext(), rightOrthoMesh->getIndexCount());
 	renderer->setZBuffer(true);
 
 	// Render GUI

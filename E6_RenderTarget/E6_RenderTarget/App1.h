@@ -7,6 +7,7 @@
 #include "LightShader.h"
 #include "TextureShader.h"
 #include "GreyscaleLightShader.h"
+#include "MinimapShader.h"
 
 class App1 : public BaseApplication
 {
@@ -29,14 +30,15 @@ private:
 	Camera* topCamera;
 	CubeMesh* cubeMesh;
 	SphereMesh* sphereMesh;
-	PlaneMesh* planeMesh;
-	OrthoMesh* leftOrthoMesh;
+	PlaneMesh* planeMesh; 
+	OrthoMesh* mapOrthoMesh;
 	OrthoMesh* rightOrthoMesh;
 	LightShader* lightShader;
 	TextureShader* textureShader;
 	GreyscaleLightShader* greyscaleShader;
-	RenderTexture* leftRenderTexture;
-	RenderTexture* rightRenderTexture;
+	MinimapShader* minimapShader;
+	RenderTexture* minimapRenderTexture;
+	RenderTexture* firstMapRenderTexture;
 
 	Light* light;
 };

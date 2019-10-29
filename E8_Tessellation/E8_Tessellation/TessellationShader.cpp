@@ -25,7 +25,11 @@ TessellationShader::~TessellationShader()
 		layout->Release();
 		layout = 0;
 	}
-	
+	if (tesselationBuffer)
+	{
+		tesselationBuffer->Release();
+		tesselationBuffer = 0;
+	}
 	//Release base shader components
 	BaseShader::~BaseShader();
 }
@@ -49,6 +53,17 @@ void TessellationShader::initShader(const wchar_t* vsFilename, const wchar_t* ps
 
 	renderer->CreateBuffer(&matrixBufferDesc, NULL, &matrixBuffer);
 
+	// Create the tesselation buffer
+	D3D11_BUFFER_DESC tesselationBufferDesc;
+	tesselationBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
+	tesselationBufferDesc.ByteWidth = sizeof(TesselationBufferType);
+	tesselationBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	tesselationBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	tesselationBufferDesc.MiscFlags = 0;
+	tesselationBufferDesc.StructureByteStride = 0;
+
+	renderer->CreateBuffer(&tesselationBufferDesc, NULL, &tesselationBuffer);
+
 	
 }
 
@@ -63,7 +78,7 @@ void TessellationShader::initShader(const wchar_t* vsFilename, const wchar_t* hs
 }
 
 
-void TessellationShader::setShaderParameters(ID3D11DeviceContext* deviceContext, const XMMATRIX &worldMatrix, const XMMATRIX &viewMatrix, const XMMATRIX &projectionMatrix)
+void TessellationShader::setShaderParameters(ID3D11DeviceContext* deviceContext, const XMMATRIX &worldMatrix, const XMMATRIX &viewMatrix, const XMMATRIX &projectionMatrix, float edge1, float edge2, float edge3, float edge4, float inside1, float inside2)
 {
 	HRESULT result;
 	D3D11_MAPPED_SUBRESOURCE mappedResource;
@@ -81,6 +96,21 @@ void TessellationShader::setShaderParameters(ID3D11DeviceContext* deviceContext,
 	dataPtr->projection = tproj;
 	deviceContext->Unmap(matrixBuffer, 0);
 	deviceContext->DSSetConstantBuffers(0, 1, &matrixBuffer);
+
+	// additional
+	// send tesselation data to hull shader
+	TesselationBufferType* tessPtr;
+	deviceContext->Map(tesselationBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+	tessPtr = (TesselationBufferType*)mappedResource.pData;
+	tessPtr->edges.x = edge1;
+	tessPtr->edges.y = edge2;
+	tessPtr->edges.z = edge3;
+	tessPtr->edges.w = edge4;
+	tessPtr->insides.x = inside1;
+	tessPtr->insides.y = inside2;
+	tessPtr->padding = XMFLOAT2(0.0f, 0.0f);
+	deviceContext->Unmap(tesselationBuffer, 0);
+	deviceContext->HSSetConstantBuffers(0, 1, &tesselationBuffer);
 }
 
 

@@ -15,6 +15,15 @@ void App1::init(HINSTANCE hinstance, HWND hwnd, int screenWidth, int screenHeigh
 	// Create Mesh object and shader object
 	mesh = new TessellationMesh(renderer->getDevice(), renderer->getDeviceContext());
 	shader = new TessellationShader(renderer->getDevice(), hwnd);
+	
+	quadMesh = new TessellationQuadMesh(renderer->getDevice(), renderer->getDeviceContext());
+	 
+	edge1 = 1;
+	edge2 = 1;
+	edge3 = 1;
+	edge4 = 1;
+	inside1 = 2;
+	inside2 = 2;
 }
 
 
@@ -64,9 +73,10 @@ bool App1::render()
 	projectionMatrix = renderer->getProjectionMatrix();
 
 	// Send geometry data, set shader parameters, render object with shader
-	mesh->sendData(renderer->getDeviceContext());
-	shader->setShaderParameters(renderer->getDeviceContext(), worldMatrix, viewMatrix, projectionMatrix);
-	shader->render(renderer->getDeviceContext(), mesh->getIndexCount());
+	//renderer->getDeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_4_CONTROL_POINT_PATCHLIST);
+	quadMesh->sendData(renderer->getDeviceContext());
+	shader->setShaderParameters(renderer->getDeviceContext(), worldMatrix, viewMatrix, projectionMatrix, edge1, edge2, edge3, edge4, inside1, inside2);
+	shader->render(renderer->getDeviceContext(), quadMesh->getIndexCount());
 
 	// Render GUI
 	gui();
@@ -87,6 +97,12 @@ void App1::gui()
 	// Build UI
 	ImGui::Text("FPS: %.2f", timer->getFPS());
 	ImGui::Checkbox("Wireframe mode", &wireframeToggle);
+	ImGui::InputFloat("Edge1 ", &edge1, 1, 64);
+	ImGui::InputFloat("Edge2 ", &edge2, 1, 64);
+	ImGui::InputFloat("Edge3 ", &edge3, 1, 64);
+	ImGui::InputFloat("Edge4 ", &edge4, 1, 64);
+	ImGui::InputFloat("Inside1 ", &inside1, 1, 64);
+	ImGui::InputFloat("Inside2 ", &inside2, 1, 64);
 
 	// Render UI
 	ImGui::Render();

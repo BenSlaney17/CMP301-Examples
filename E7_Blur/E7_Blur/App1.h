@@ -22,8 +22,10 @@ public:
 protected:
 	bool render();
 	void firstPass();
+	void downSample();
 	void verticalBlur();
 	void horizontalBlur();
+	void upSample();
 	void finalPass();
 	void gui();
 
@@ -34,11 +36,13 @@ private:
 	TextureShader* textureShader;
 
 	RenderTexture* renderTexture;
+	RenderTexture* downRenderTexture;
 	RenderTexture* horizontalBlurTexture;
 	RenderTexture* verticalBlurTexture;
+	RenderTexture* upRenderTexture;
 	VerticalBlurShader* verticalBlurShader;
 	HorizontalBlurShader* horizontalBlurShader;
-	
+
 	Light* light;
 };
 
